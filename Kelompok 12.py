@@ -144,5 +144,7 @@ def main():
     # akurasi
     acc = evaluate(model, test)
     print(f"\nAkurasi model pada data testing: {acc*100:.2f}%")
+    
+input("\nTekan ENTER untuk keluar...")
 
 main()
