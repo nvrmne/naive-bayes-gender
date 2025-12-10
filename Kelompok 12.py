@@ -1,6 +1,5 @@
 import csv
 import math
-import os
 from statistics import mean, stdev
 
 def load_dataset(filename):
@@ -9,7 +8,6 @@ def load_dataset(filename):
         reader = csv.DictReader(f)
         for row in reader:
             # convert angka
-            row["long_hair"] = int(row["long_hair"])
             row["nose_wide"] = int(row["nose_wide"])
             row["nose_long"] = int(row["nose_long"])
             row["lips_thin"] = int(row["lips_thin"])
@@ -29,7 +27,6 @@ def gaussian(x, mu, sigma):
     return (1 / (math.sqrt(2*math.pi) * sigma)) * math.exp(-((x - mu)**2) / (2 * sigma**2))
 
 def train_model(train):
-    # pisahkan male & female
     male = [d for d in train if d["gender"] == "Male"]
     female = [d for d in train if d["gender"] == "Female"]
 
@@ -39,8 +36,9 @@ def train_model(train):
     model["prior_male"] = len(male) / len(train)
     model["prior_female"] = len(female) / len(train)
 
-    # fitur biner → hitung frekuensi
-    fitur_biner = ["long_hair","nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
+    # fitur biner (long_hair dihapus)
+    fitur_biner = ["nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
+
     for f in fitur_biner:
         model[f+"_1_male"] = sum(d[f] == 1 for d in male)
         model[f+"_0_male"] = sum(d[f] == 0 for d in male)
@@ -48,7 +46,7 @@ def train_model(train):
         model[f+"_1_female"] = sum(d[f] == 1 for d in female)
         model[f+"_0_female"] = sum(d[f] == 0 for d in female)
 
-    # fitur kontinu → mean dan std
+    # fitur kontinu
     fw_m = [d["forehead_width_cm"] for d in male]
     fw_f = [d["forehead_width_cm"] for d in female]
     fh_m = [d["forehead_height_cm"] for d in male]
@@ -71,8 +69,7 @@ def predict(model, d):
     log_m = math.log(model["prior_male"])
     log_f = math.log(model["prior_female"])
 
-    # fitur biner
-    fitur = ["long_hair","nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
+    fitur = ["nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
 
     for f in fitur:
         if d[f] == 1:
@@ -82,7 +79,7 @@ def predict(model, d):
             log_m += math.log(model[f+"_0_male"])
             log_f += math.log(model[f+"_0_female"])
 
-    # gaussian
+    # continuous
     log_m += math.log(gaussian(d["forehead_width_cm"], model["fw_m_mean"], model["fw_m_std"]))
     log_f += math.log(gaussian(d["forehead_width_cm"], model["fw_f_mean"], model["fw_f_std"]))
 
@@ -94,17 +91,15 @@ def predict(model, d):
 def evaluate(model, test):
     benar = 0
     for d in test:
-        pred = predict(model, d)
-        if pred == d["gender"]:
+        if predict(model, d) == d["gender"]:
             benar += 1
     return benar / len(test)
 
 def menu_input_user():
     print("\n=== INPUT DATA UJI ===")
     d = {}
-    d["long_hair"] = int(input("long_hair (0/1): "))
-    d["forehead_width_cm"] = float(input("forehead_width_cm: "))
-    d["forehead_height_cm"] = float(input("forehead_height_cm: "))
+    d["forehead_width_cm"] = float(input("forehead_width_cm : "))
+    d["forehead_height_cm"] = float(input("forehead_height_cm : "))
     d["nose_wide"] = int(input("nose_wide (0/1): "))
     d["nose_long"] = int(input("nose_long (0/1): "))
     d["lips_thin"] = int(input("lips_thin (0/1): "))
@@ -120,7 +115,7 @@ def main():
     print(f"P(Male)   = {model['prior_male']:.6f}")
     print(f"P(Female) = {model['prior_female']:.6f}\n")
 
-    fitur_biner = ["long_hair","nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
+    fitur_biner = ["nose_wide","nose_long","lips_thin","distance_nose_to_lip_long"]
 
     for f in fitur_biner:
         print(f"{f}:")
@@ -130,21 +125,20 @@ def main():
         print(f"  P({f}=0 | Female) = {model[f+'_0_female']}")
         print("")
 
-    print("Mean & Std (Gaussian):")
+    print("Mean & Std Gaussian:")
     print(f"  Mean FW Male   = {model['fw_m_mean']:.5f}, Std = {model['fw_m_std']:.5f}")
     print(f"  Mean FW Female = {model['fw_f_mean']:.5f}, Std = {model['fw_f_std']:.5f}")
     print(f"  Mean FH Male   = {model['fh_m_mean']:.5f}, Std = {model['fh_m_std']:.5f}")
     print(f"  Mean FH Female = {model['fh_f_mean']:.5f}, Std = {model['fh_f_std']:.5f}")
 
-    
     # user test
     d = menu_input_user()
-    hasil = predict(model, d)
-    print("\nPrediksi hasil:", hasil)
+    print("\nPrediksi hasil:", predict(model, d))
 
     # akurasi
     acc = evaluate(model, test)
     print(f"\nAkurasi model pada data testing: {acc*100:.2f}%")
-    
+
+    input("\nTekan ENTER untuk keluar...")
+
 main()
-input("\nTekan ENTER untuk keluar...")
