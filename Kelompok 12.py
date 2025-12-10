@@ -1,5 +1,6 @@
 import csv
 import math
+import os
 from statistics import mean, stdev
 
 def load_dataset(filename):
@@ -145,6 +146,5 @@ def main():
     acc = evaluate(model, test)
     print(f"\nAkurasi model pada data testing: {acc*100:.2f}%")
     
-input("\nTekan ENTER untuk keluar...")
-
 main()
+input("\nTekan ENTER untuk keluar...")
